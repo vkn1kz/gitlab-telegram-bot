@@ -77,81 +77,83 @@ def webhook():
     b.send_to_all(msg)
     return jsonify({'status': 'ok'})
 
-
 def generatePushMsg(data):
-    msg = '*{0} ({1}) - {2} new commits*\n'\
-        .format(data['project']['name'], data['project']['default_branch'], data['total_commits_count'])
+    msg = '{0} ({1})\n{2} new commits\n'\
+        .format(getProjectTitle(data), data['project']['default_branch'], data['total_commits_count'])
     for commit in data['commits']:
-        msg = msg + '----------------------------------------------------------------\n'
-        msg = msg + commit['message'].rstrip()
-        msg = msg + '\n' + commit['url'].replace("_", "\_") + '\n'
-    msg = msg + '----------------------------------------------------------------\n'
+        msg = msg + "[{0}]({1})\n{2}\n\n".format(commit['id'][:8], commit['url'].replace("_", "\_"), commit['message'].rstrip())
     return msg
 
 
 def generateIssueMsg(data):
     action = data['object_attributes']['action']
-    if action == 'open':
-        assignees = ''
-        for assignee in data.get('assignees', []):
-            assignees += assignee['name'] + ' '
-        msg = '*{0}* new issue for *{1}*:\n'\
-            .format(data['project']['name'], assignees)
-    elif action == 'reopen':
-        assignees = ''
-        for assignee in data.get('assignees', []):
-            assignees += assignee['name'] + ' '
-        msg = '*{0}* issue re-opened for *{1}*:\n'\
-            .format(data['project']['name'], assignees)
-    elif action == 'close':
-        msg = '*{0}* issue closed by *{1}*:\n'\
-            .format(data['project']['name'], data['user']['name'])
-    elif action == 'update':
-        assignees = ''
-        for assignee in data.get('assignees', []):
-            assignees += assignee['name'] + ' '
-        msg = '*{0}* issue assigned to *{1}*:\n'\
-            .format(data['project']['name'], assignees)
-
-    msg = msg + '[{0}]({1})'\
-        .format(data['object_attributes']['title'], data['object_attributes']['url'])
+    msg = "{0}\n{1} {2}\n{3}"\
+        .format(getProjectTitle(data), action.capitalize(), getNewIssue(data), getBy(data))
+    if action != 'close':
+        msg = msg + "\n" + getAssignees(data)
     return msg
-
 
 def generateCommentMsg(data):
     ntype = data['object_attributes']['noteable_type']
     if ntype == 'Commit':
         msg = 'note to commit'
     elif ntype == 'MergeRequest':
-        msg = 'note to MergeRequest'
+        msg = "{0}\nNote to {1}\n{2}\n---\n{3}"\
+            .format(getProjectTitle(data), getMR(data), getBy(data), getNote(data))
     elif ntype == 'Issue':
-        msg = (
-            "Project [{0}]({1})\n".format(data['project']['name'], data['project']['web_url']) +
-            "Note to Issue [#{0}]({1})\n".format(data['issue']['iid'], data['object_attributes']['url']) +
-            "by ![]({0}) @{1}\n".format(data['user']['avatar_url'], data['user']['name']) +
-            "---\n"
-            + data['object_attributes']['note']
-        )
+        msg = "{0}\nNote to {1}\n{2}\n---\n{3}"\
+            .format(getProjectTitle(data), getIssue(data), getBy(data), getNote(data))
     elif ntype == 'Snippet':
         msg = 'note on code snippet'
     return msg
 
-
 def generateMergeRequestMsg(data):
-    return 'new MergeRequest'
-
+    return "{0}\nNew {1}\n{2}\n{3}\n---\n{4}"\
+        .format(getProjectTitle(data),getNewMR(data),getBy(data),getAssignee(data),getDescription(data))
 
 def generateWikiMsg(data):
     return 'new wiki stuff'
 
-
 def generatePipelineMsg(data):
     return 'new pipeline stuff'
-
 
 def generateBuildMsg(data):
     return 'new build stuff'
 
+def getProjectTitle(data):
+    return "Project [{0}]({1})".format(data['project']['name'], data['project']['web_url'])
+
+def getBy(data):
+    return "by {0}".format(data['user']['name'])
+
+def getIssue(data):
+    return "issue [#{0}]({1}) {2}"\
+        .format(data['issue']['iid'], data['object_attributes']['url'], data['issue']['title'])
+
+def getNewIssue(data):
+    return "issue [#{0}]({1}) {2}"\
+        .format(data['object_attributes']['iid'], data['object_attributes']['url'], data['object_attributes']['title'])
+
+def getMR(data):
+    return "merge request [#{0}]({1}) {2}".format(data['merge_request']['iid'], data['object_attributes']['url'], data['merge_request']['title'])
+
+def getNewMR(data):
+    return "merge request [#{0}]({1}) {2}".format(data['object_attributes']['iid'], data['object_attributes']['url'], data['object_attributes']['title'])
+
+def getNote(data):
+    return data['object_attributes']['note']
+
+def getDescription(data):
+    return data['object_attributes']['description']
+
+def getAssignees(data):
+    assignees = ''
+    for assignee in data.get('assignees', []):
+        assignees += assignee['name'] + ' '
+    return "Assignee on {0}".format(assignees)
+
+def getAssignee(data):
+    return "Assignee on {0}".format(data['object_attributes']['assignee']['name'])
 
 if __name__ == "__main__":
     b.run_threaded()
