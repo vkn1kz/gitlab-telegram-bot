@@ -125,7 +125,13 @@ def generateCommentMsg(data):
     elif ntype == 'MergeRequest':
         msg = 'note to MergeRequest'
     elif ntype == 'Issue':
-        msg = 'note to Issue'
+        msg = (
+            "Project [{0}]({1})\n".format(data['project']['name'], data['project']['web_url']) +
+            "Note to Issue [#{0}]({1})\n".format(data['issue']['iid'], data['object_attributes']['url']) +
+            "by ![]({0}) @{1}\n".format(data['issue']['avatar_url'], data['user']['name']) +
+            "---"
+            "" + data['object_attributes']['note']
+        )
     elif ntype == 'Snippet':
         msg = 'note on code snippet'
     return msg
