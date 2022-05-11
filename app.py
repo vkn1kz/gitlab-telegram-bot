@@ -128,9 +128,9 @@ def generateCommentMsg(data):
         msg = (
             "Project [{0}]({1})\n".format(data['project']['name'], data['project']['web_url']) +
             "Note to Issue [#{0}]({1})\n".format(data['issue']['iid'], data['object_attributes']['url']) +
-            "by ![]({0}) @{1}\n".format(data['issue']['avatar_url'], data['user']['name']) +
-            "---"
-            "" + data['object_attributes']['note']
+            "by ![]({0}) @{1}\n".format(data['user']['avatar_url'], data['user']['name']) +
+            "---\n"
+            + data['object_attributes']['note']
         )
     elif ntype == 'Snippet':
         msg = 'note on code snippet'
